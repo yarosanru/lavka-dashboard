@@ -23,7 +23,6 @@ body{max-width:1280px;margin:0 auto;font-family:Arial,sans-serif;color:light-dar
 <span>Неделя 6 · Фитнес-программа</span>
 <a href="#conclusions">Выводы</a>
 <a href="fitness-homework.png" download>График PNG</a>
-<a href="https://github.com/yarosanru/lavka-dashboard/blob/main/fitness/DATALENS.md">Инструкция для DataLens</a>
 <a href="https://github.com/yarosanru/lavka-dashboard/tree/main/fitness">Репозиторий</a>
 </nav>
 <iframe id="codex-visualization" sandbox="allow-scripts" referrerpolicy="no-referrer" title="Неделя 6 — вовлечённость в фитнес-программу" data-srcdoc="&lt;!doctype html&gt;
@@ -1892,6 +1891,33 @@ html&gt;body{padding:0}&lt;/style&gt;
       }
     }
   }
+  function drawWeekSummary(svg,weeks,cw,left){
+    const barTop=124,barBottom=208;
+    const capacity=d3.max(data.weekly,w=&gt;data.workouts.filter(t=&gt;t.week===w.week).length);
+    const scale=d3.scaleLinear().domain([0,capacity]).range([barBottom,barTop]);
+    svg.append(&#x27;rect&#x27;).attr(&#x27;data-summary-frame&#x27;,&#x27;&#x27;).attr(&#x27;x&#x27;,left).attr(&#x27;y&#x27;,100).attr(&#x27;width&#x27;,weeks.length*cw).attr(&#x27;height&#x27;,114).attr(&#x27;fill&#x27;,&#x27;none&#x27;).attr(&#x27;stroke&#x27;,&#x27;var(--border)&#x27;);
+    [[&#x27;Итог недели&#x27;,113],[&#x27;Просм./уч.&#x27;,132],[`0–${capacity}`,151]].forEach(([label,y])=&gt;svg.append(&#x27;text&#x27;).attr(&#x27;class&#x27;,&#x27;fa-axis-tick&#x27;).attr(&#x27;x&#x27;,left-10).attr(&#x27;y&#x27;,y).attr(&#x27;text-anchor&#x27;,&#x27;end&#x27;).text(label));
+    svg.append(&#x27;line&#x27;).attr(&#x27;x1&#x27;,left).attr(&#x27;x2&#x27;,left+weeks.length*cw).attr(&#x27;y1&#x27;,barBottom).attr(&#x27;y2&#x27;,barBottom).attr(&#x27;stroke&#x27;,&#x27;var(--border)&#x27;);
+    for(const [index,week] of weeks.entries()){
+      const workouts=data.workouts.filter(w=&gt;w.week===week.week);
+      const total=d3.sum(workouts,w=&gt;w.views),engagement=total/data.participants;
+      const x=left+index*cw,c=x+cw/2;
+      const link=svg.append(&#x27;a&#x27;).attr(&#x27;href&#x27;,&#x27;#fitness-homework-detail&#x27;).attr(&#x27;data-week-summary&#x27;,week.week).attr(&#x27;data-summary-views&#x27;,total).attr(&#x27;data-summary-population&#x27;,data.participants).attr(&#x27;data-summary-engagement&#x27;,engagement).attr(&#x27;aria-label&#x27;,`Итог недели ${week.week}: ${workouts.length} тренировок, ${total} просмотров, ${num.format(engagement)} на участника, ${week.users} активных участников.`);
+      const barWidth=Math.min(34,cw*.52);
+      link.append(&#x27;rect&#x27;).attr(&#x27;data-summary-bar&#x27;,week.week).attr(&#x27;x&#x27;,c-barWidth/2).attr(&#x27;y&#x27;,scale(engagement)).attr(&#x27;width&#x27;,barWidth).attr(&#x27;height&#x27;,barBottom-scale(engagement)).attr(&#x27;fill&#x27;,&#x27;var(--foreground)&#x27;).attr(&#x27;opacity&#x27;,.6);
+      link.append(&#x27;text&#x27;).attr(&#x27;class&#x27;,&#x27;fa-value&#x27;).attr(&#x27;data-week&#x27;,week.week).attr(&#x27;data-metric&#x27;,&#x27;engagement&#x27;).attr(&#x27;x&#x27;,c).attr(&#x27;y&#x27;,scale(engagement)-7).attr(&#x27;text-anchor&#x27;,&#x27;middle&#x27;).text(num.format(engagement));
+      link.append(&#x27;rect&#x27;).attr(&#x27;data-summary-hit&#x27;,week.week).attr(&#x27;x&#x27;,x+1).attr(&#x27;y&#x27;,101).attr(&#x27;width&#x27;,cw-2).attr(&#x27;height&#x27;,112).attr(&#x27;fill&#x27;,&#x27;transparent&#x27;);
+      function inspectWeek(event){
+        tip.textContent=[`Итог недели ${week.week} · все ${workouts.length} тренировок`,`Всего просмотров: ${total}`,`Просмотров на участника: ${num.format(engagement)}`,`Активных участников: ${week.users} из ${data.participants}`,...workouts.map(w=&gt;`${w.day.toUpperCase()} · ${w.kind}: ${w.views}`)].join(&#x27;\n&#x27;);
+        tip.hidden=false;
+        const rect=root.getBoundingClientRect();
+        tip.style.left=Math.max(0,Math.min(event.clientX-rect.left+12,rect.width-tip.offsetWidth))+&#x27;px&#x27;;
+        tip.style.top=Math.max(0,event.clientY-rect.top-tip.offsetHeight-12)+&#x27;px&#x27;;
+      }
+      link.on(&#x27;pointermove&#x27;,inspectWeek).on(&#x27;pointerleave&#x27;,()=&gt;{tip.hidden=true;}).on(&#x27;focus&#x27;,()=&gt;{const box=link.node().getBoundingClientRect();inspectWeek({clientX:box.left,clientY:box.top});}).on(&#x27;blur&#x27;,()=&gt;{tip.hidden=true;}).on(&#x27;click&#x27;,event=&gt;{event.preventDefault();selection.textContent=`Итог недели ${week.week} · ${total} просмотров восьми тренировок · ${num.format(engagement)} на всех ${data.participants} участников · активны ${week.users}`;inspectWeek(event);});
+    }
+  }
+
   function draw(){
     const width=holder.clientWidth;
     if(!width)return;
@@ -1906,7 +1932,7 @@ html&gt;body{padding:0}&lt;/style&gt;
     const atomHeight=7,atomYGap=1,atomTop=8;
     const markRows=Math.ceil(data.participants/atomCols);
     const rowHeight=atomTop+markRows*(atomHeight+atomYGap)+24;
-    const top=116,bottom=8,height=top+rowHeight*8+bottom;
+    const top=232,bottom=8,height=top+rowHeight*8+bottom;
     for(let start=1;start&lt;=10;start+=weeksPerPanel){
       const weeks=data.weekly.filter(d=&gt;d.week&gt;=start&amp;&amp;d.week&lt;start+weeksPerPanel);
       const end=weeks.at(-1).week;
@@ -1914,12 +1940,12 @@ html&gt;body{padding:0}&lt;/style&gt;
       svg.append(&#x27;rect&#x27;).attr(&#x27;data-chart-frame&#x27;,&#x27;&#x27;).attr(&#x27;x&#x27;,left).attr(&#x27;y&#x27;,top).attr(&#x27;width&#x27;,weeks.length*cw).attr(&#x27;height&#x27;,rowHeight*8).attr(&#x27;fill&#x27;,&#x27;none&#x27;).attr(&#x27;stroke&#x27;,&#x27;var(--border)&#x27;);
       svg.append(&#x27;text&#x27;).attr(&#x27;class&#x27;,&#x27;axis-title&#x27;).attr(&#x27;data-axis&#x27;,&#x27;x&#x27;).attr(&#x27;x&#x27;,left+weeks.length*cw/2).attr(&#x27;y&#x27;,17).attr(&#x27;text-anchor&#x27;,&#x27;middle&#x27;).text(&#x27;Неделя программы&#x27;);
       svg.append(&#x27;text&#x27;).attr(&#x27;class&#x27;,&#x27;axis-title&#x27;).attr(&#x27;data-axis&#x27;,&#x27;y&#x27;).attr(&#x27;transform&#x27;,`translate(13,${top+rowHeight*4}) rotate(-90)`).attr(&#x27;text-anchor&#x27;,&#x27;middle&#x27;).text(&#x27;Тренировка по расписанию&#x27;);
-      [[&#x27;Неделя&#x27;,36],[&#x27;Просмотры&#x27;,58],[&#x27;На участника&#x27;,80],[&#x27;Активны&#x27;,102]].forEach(([label,y])=&gt;svg.append(&#x27;text&#x27;).attr(&#x27;class&#x27;,&#x27;fa-axis-tick&#x27;).attr(&#x27;x&#x27;,left-10).attr(&#x27;y&#x27;,y).attr(&#x27;text-anchor&#x27;,&#x27;end&#x27;).text(label));
+      [[&#x27;Неделя&#x27;,36],[&#x27;Просмотры&#x27;,58],[&#x27;Активны&#x27;,80]].forEach(([label,y])=&gt;svg.append(&#x27;text&#x27;).attr(&#x27;class&#x27;,&#x27;fa-axis-tick&#x27;).attr(&#x27;x&#x27;,left-10).attr(&#x27;y&#x27;,y).attr(&#x27;text-anchor&#x27;,&#x27;end&#x27;).text(label));
       const allPositions=[],workoutLinks=[];
       weeks.forEach((week,index)=&gt;{
         const x=left+index*cw;
         const c=x+cw/2;
-        [[week.week,36,&#x27;week&#x27;],[week.views,58,&#x27;views&#x27;],[num.format(week.views/data.participants),80,&#x27;engagement&#x27;],[week.users,102,&#x27;users&#x27;]].forEach(([value,y,metric])=&gt;svg.append(&#x27;text&#x27;).attr(&#x27;class&#x27;,&#x27;fa-value&#x27;).attr(&#x27;data-week&#x27;,week.week).attr(&#x27;data-metric&#x27;,metric).attr(&#x27;x&#x27;,c).attr(&#x27;y&#x27;,y).attr(&#x27;text-anchor&#x27;,&#x27;middle&#x27;).text(value));
+        [[week.week,36,&#x27;week&#x27;],[week.views,58,&#x27;views&#x27;],[week.users,80,&#x27;users&#x27;]].forEach(([value,y,metric])=&gt;svg.append(&#x27;text&#x27;).attr(&#x27;class&#x27;,&#x27;fa-value&#x27;).attr(&#x27;data-week&#x27;,week.week).attr(&#x27;data-metric&#x27;,metric).attr(&#x27;x&#x27;,c).attr(&#x27;y&#x27;,y).attr(&#x27;text-anchor&#x27;,&#x27;middle&#x27;).text(value));
         if(index&gt;0)svg.append(&#x27;line&#x27;).attr(&#x27;x1&#x27;,x).attr(&#x27;x2&#x27;,x).attr(&#x27;y1&#x27;,top).attr(&#x27;y2&#x27;,top+rowHeight*8).attr(&#x27;stroke&#x27;,&#x27;var(--border)&#x27;);
         for(let slot=1;slot&lt;=8;slot++){
           const w=data.workouts.find(d=&gt;d.week===week.week&amp;&amp;Number(d.code.slice(-2))===slot);
@@ -1973,6 +1999,7 @@ html&gt;body{padding:0}&lt;/style&gt;
         label.append(&#x27;tspan&#x27;).text(w.views);
         if(w.mean_depth&lt;.9)label.append(&#x27;tspan&#x27;).attr(&#x27;data-low-depth&#x27;,w.code).text(` · ${Math.round(w.mean_depth*100)}%`);
       }
+      drawWeekSummary(svg,weeks,cw,left);
       verifyLabels(svg);
     }
   }
@@ -2584,6 +2611,7 @@ html&gt;body{padding:0}&lt;/style&gt;
 <p>Таким образом, график показывает сокращение числа просмотров и охвата, вклад отдельных тренировок в общее изменение и четыре отклонения по глубине. Наблюдаемое совпадение не доказывает, что конкретная тренировка или тренер стали причиной прекращения просмотров.</p>
 <h2>Как устроен график</h2>
 <p>Частица данных — один просмотр конкретной тренировки конкретным участником. Каждый из 3 755 просмотров показан отдельным прямоугольником. Каркас: по горизонтали — десять недель программы, по вертикали — восемь тренировок по дням и типам. Цвет кодирует тренера, заполненная доля площади — глубину. В каждой ячейке одинаковая вместимость 101; отсутствующие просмотры не рисуются. Фигуры упорядочены от меньшей глубины к большей.</p>
+<p>Ряд «Итог недели» объединяет все восемь тренировок каждой недели. Высота столбика — суммарные просмотры / 101 участник. Шкала одинакова для всех недель: от 0 до 8 просмотров на участника. В подсказке — недельный итог, активные участники и число просмотров каждой из восьми тренировок. Итоговые столбики — агрегаты тех же данных, поэтому к 3 755 отдельным просмотрам они не прибавляются.</p>
 <p>Пример частицы: одна частично заполненная фигура в ячейке интенсива Анны во второй неделе. В публичной версии фигуры восстановлены из обезличенного распределения глубины с точностью 0,1 процентного пункта. ID участников, исходные ID просмотров, персональные даты и связи между просмотрами не публикуются. Недели относятся к расписанию программы, а не к календарным неделям просмотра. Единица длительности в исходном файле явно не указана.</p>
 <p>Источник: предоставленный учебный файл «Онлайн-тренировки, 10 недель--954768701.xlsx», лист «Просмотры». <a href="https://github.com/yarosanru/lavka-dashboard/blob/main/fitness/HOMEWORK.md">Полное пояснение к домашней работе</a>.</p>
 </section>

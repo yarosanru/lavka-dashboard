@@ -2,7 +2,7 @@
 
 Интерактивный дашборд истории заказов на Vue.js 3.5.22 и D3.js 7.9.0.
 
-Отдельная домашняя работа: [Неделя 6 — график вовлечённости в фитнес-программу](https://yarosanru.github.io/lavka-dashboard/fitness/). [Выводы и данные для DataLens](fitness/README.md).
+Отдельная домашняя работа: [Неделя 6 — график вовлечённости в фитнес-программу](https://yarosanru.github.io/lavka-dashboard/fitness/). [Описание графика и выводы](fitness/README.md).
 
 ## Просмотр
 
