@@ -1874,7 +1874,7 @@ html&gt;body{padding:0}&lt;/style&gt;
     const width=Math.floor(holder.clientWidth);
     if(!width||width===lastWidth)return;
     lastWidth=width;tip.hidden=true;pinned=false;d3.select(holder).selectAll(&#x27;*&#x27;).remove();
-    const left=width&gt;=1000?148:width&gt;=600?120:104;
+    const left=width&gt;=1000?148:120;
     const right=width&gt;=1000?76:width&gt;=600?52:12;
     const available=width-left-right;
     const perPanel=Math.min(width&lt;450?4:10,Math.max(1,Math.floor(available/56)));
