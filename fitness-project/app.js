@@ -110,42 +110,49 @@
     $('flow-caption').textContent=`Вся программа · участников: ${data.cohorts[state.cohort].n}${state.cohort?' в выбранной группе':''}. Пропуск не означает окончательный уход. Фильтры тренера и типа здесь не применяются.`;
   }
   function drawRatings(){
-    const height=234,{svg,width}=svgFor('ratings-chart',height,'Средние оценки тренеров и количество поставленных оценок в выбранном срезе.');
-    const left=73,right=88,x=d3.scaleLinear().domain([0,5]).range([left,width-right]),top=22,row=35;
-    text(svg,width-3,13,'Оценка · n','muted','end');
+    const height=260,{svg,width}=svgFor('ratings-chart',height,'Средний охват видео каждого тренера в процентах участников. Справа — средняя оценка и число поставленных оценок.');
+    const left=73,x=d3.scaleLinear().domain([0,1]).range([left,width-146]),top=43,row=35;
+    text(svg,left,15,'Охват, %','muted');
+    text(svg,width-3,12,'Оценка','muted','end');
+    text(svg,width-3,27,'число оценок','muted','end');
     current.coaches.forEach((d,i)=>{
       const y=top+i*row,detail=()=>`${d.name}\nСредняя оценка: ${rating(d.rating)}\nПоставлено оценок: ${d.ratings} из ${d.views} просмотров\nВидео в срезе: ${d.videos}\nОхват одного видео: ${percent(d.reach)}`;
-      const a=link(svg,`${d.name}: оценка ${rating(d.rating)}, ${d.ratings} оценок. Выбрать тренера.`,()=>toggle('coach',d.id),detail);
+      const a=link(svg,`${d.name}: средний охват видео ${percent(d.reach)}, оценка ${rating(d.rating)}, ${d.ratings} оценок. Выбрать тренера.`,()=>toggle('coach',d.id),detail);
       hit(a,0,y-6,width,row);
       text(a,left-10,y+10,d.name,state.coach===d.id?'emphasis':'','end');
-      if(d.rating!==null){a.append('rect').attr('x',left).attr('y',y).attr('width',x(5)-left).attr('height',12).attr('fill','var(--track)').attr('pointer-events','none');a.append('rect').attr('data-rating',d.id).attr('data-value',d.rating).attr('x',left).attr('y',y).attr('width',x(d.rating)-left).attr('height',12).attr('fill',colors[i]).attr('pointer-events','none');}
-      text(a,width-3,y+10,`${rating(d.rating)} · ${d.ratings}`,'','end');
+      if(d.reach!==null){a.append('rect').attr('x',left).attr('y',y).attr('width',x(1)-left).attr('height',12).attr('fill','var(--track)').attr('pointer-events','none');a.append('rect').attr('data-coach-reach',d.id).attr('data-value',d.reach).attr('x',left).attr('y',y).attr('width',x(d.reach)-left).attr('height',12).attr('fill',colors[i]).attr('pointer-events','none');}
+      text(a,width-94,y+10,percent(d.reach),'','end');
+      text(a,width-3,y+10,`${rating(d.rating)} · ${d.ratings}`,'','end').attr('data-rating',d.id).attr('data-value',d.rating===null?'':d.rating);
     });
-    [0,1,2,3,4,5].forEach(v=>text(svg,x(v),top+5*row+2,v,'muted','middle'));
-    text(svg,left,233,'Средняя оценка','muted');
+    [0,.5,1].forEach(v=>text(svg,x(v),top+5*row+2,`${v*100}%`,'muted',v===0?'start':v===1?'end':'middle'));
+    text(svg,left,259,'Средний охват одного видео','muted');
   }
   function drawPreferences(){
-    const height=286,{svg,width}=svgFor('preference-chart',height,'Предпочтения выбранной группы активности и всех участников. Средний охват одного видео каждого типа в процентах.');
+    const height=280,{svg,width}=svgFor('preference-chart',height,'Как часто смотрят видео разных типов. Слева — выбранная группа активности, справа — все участники. Проценты показывают средний охват одного видео.');
     const group=current.preferenceCohort,key=$('preference-key');key.textContent='';
-    for(const [label,color,cohort] of [[`${group.label} · ${group.n}`,'var(--low)',group.id],['Все участники · 101','var(--all)',0]]){
-      const button=document.createElement('button');button.type='button';button.setAttribute('aria-pressed',String(state.cohort===cohort));button.addEventListener('click',()=>toggle('cohort',cohort));
-      const swatch=document.createElement('i');swatch.className='swatch';swatch.style.setProperty('--color',color);button.appendChild(swatch);button.appendChild(document.createTextNode(label));key.appendChild(button);
+    const left=70,column=(width-left)/2,row=32,top=66;
+    const shortGroup={1:'Малоактивные',2:'Средняя активн.',3:'Высокоактивные'}[group.id];
+    for(const [label,cohort,index] of [[shortGroup,group.id,0],['Все участники',0,1]]){
+      const cx=left+(index+.5)*column;
+      const a=link(svg,`${data.cohorts[cohort].label}, ${data.cohorts[cohort].n} человек: выбрать группу`,()=>toggle('cohort',cohort));
+      hit(a,left+index*column,0,column,54);
+      text(a,cx,16,label,'emphasis','middle');text(a,cx,34,`${data.cohorts[cohort].n} человек`,'muted','middle');
+      svg.append('line').attr('x1',left+index*column+5).attr('x2',left+(index+1)*column-6).attr('y1',47).attr('y2',47).attr('stroke','var(--line)');
     }
-    const left=78,right=48,x=d3.scaleLinear().domain([0,1]).range([left,width-right]),row=39,top=12;
     current.preferences.forEach((d,i)=>{
       const y=top+i*row;
-      const a=link(svg,`${d.name}: выбрать тип`,()=>toggle('kind',d.id));hit(a,0,y-4,left-5,row);text(a,left-10,y+15,d.name,state.kind===d.id?'emphasis':'','end');
-      for(const [s,offset,color,cohort] of [[d.chosen,0,'var(--low)',group.id],[d.all,14,'var(--all)',0]]){
+      const a=link(svg,`${d.name}: выбрать тип`,()=>toggle('kind',d.id));hit(a,0,y-7,left-5,row);text(a,left-10,y+10,d.name,state.kind===d.id?'emphasis':'','end');
+      for(const [s,index,color,cohort] of [[d.chosen,0,'var(--low)',group.id],[d.all,1,'var(--all)',0]]){
+        const start=left+index*column+5,end=left+(index+1)*column-48,x=d3.scaleLinear().domain([0,1]).range([start,end]);
         const detail=()=>`${d.name} · ${data.cohorts[cohort].label}\nОхват одного видео: ${percent(s.reach)}\n${s.views} просмотров / (${s.participants} участников × ${s.videos} видео)\nНажмите, чтобы выбрать тип и группу`;
         const bar=link(svg,`${d.name}, ${data.cohorts[cohort].label}: ${percent(s.reach)}. Выбрать тип и группу.`,()=>{const same=state.kind===d.id&&state.cohort===cohort;set({kind:same?0:d.id,cohort:same?0:cohort});},detail);
-        hit(bar,left,y+offset,width-left,14);
-        if(s.reach!==null)bar.append('rect').attr('data-preference',`${cohort}:${d.id}`).attr('data-value',s.reach).attr('x',left).attr('y',y+offset+1).attr('width',x(s.reach)-left).attr('height',8).attr('fill',color).attr('pointer-events','none');
-        text(bar,width-2,y+offset+10,s.reach===null?'—':`${Math.round(s.reach*100)}%`,'','end');
+        hit(bar,left+index*column,y-6,column,row-2);
+        if(s.reach!==null){bar.append('rect').attr('x',start).attr('y',y).attr('width',end-start).attr('height',10).attr('fill','var(--track)').attr('pointer-events','none');bar.append('rect').attr('data-preference',`${cohort}:${d.id}`).attr('data-value',s.reach).attr('x',start).attr('y',y).attr('width',x(s.reach)-start).attr('height',10).attr('fill',color).attr('pointer-events','none');}
+        text(bar,left+(index+1)*column-6,y+10,percent(s.reach),'','end');
       }
     });
-    [0,.25,.5,.75,1].forEach(v=>text(svg,x(v),top+6*row+8,`${v*100}%`,'muted',v===0?'start':v===1?'end':'middle'));
-    text(svg,left,283,'Средний охват одного видео','muted');
-    $('preference-caption').textContent=`${group.label}: ${group.min}–${group.max} просмотренных видео за всю программу. Группа остаётся постоянной при фильтрации.`;
+    text(svg,left,277,'Полная полоса — 100% участников','muted');
+    $('preference-caption').textContent=`${group.label}: ${group.min}–${group.max} видео за всю программу. Например, 24% — в среднем 24 из 100 участников группы смотрят одно видео этого типа. Границы группы при фильтрации не меняются.`;
   }
   function render(){
     current=model.view(state);
