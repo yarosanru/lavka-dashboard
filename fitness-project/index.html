@@ -225,7 +225,7 @@
       text(a,cx,230,d.week,'','middle');
     });
     text(svg,left+(width-left-right)/2,249,'Неделя программы','muted','middle');
-    $('flow-caption').textContent=`Вся программа · ${data.cohorts[state.cohort].n} участников${state.cohort?' выбранной группы':''}. Пропуск не означает окончательный уход. Тренер и тип на эти переходы не влияют.`;
+    $('flow-caption').textContent=`Вся программа · участников: ${data.cohorts[state.cohort].n}${state.cohort?' в выбранной группе':''}. Пропуск не означает окончательный уход. Фильтры тренера и типа здесь не применяются.`;
   }
   function drawRatings(){
     const height=234,{svg,width}=svgFor('ratings-chart',height,'Средние оценки тренеров и количество поставленных оценок в выбранном срезе.');
